@@ -1,0 +1,59 @@
+from keras.datasets import fashion_mnist
+(X_train,y_train),(X_test,y_test)=fashion_mnist.load_data()
+import matplotlib.pyplot as plt
+for i in range(9):
+ plt.subplot(330+i+1)
+ plt.imshow(X_train[i])
+plt.show()
+X = X_test
+X_train = X_train.astype('float32')
+X_test = X_test.astype('float32')
+#chuyen doi tu RGB 0-255 qua Gray 0-1
+X_train/=255
+X_test/=255
+from tensorflow.keras.utils import to_categorical
+y_train=to_categorical(y_train,10)
+y_test=to_categorical(y_test,10)
+from keras.models import Sequential
+from keras.layers import Dense,Activation,Dropout,Conv2D,MaxPooling2D,Flatten
+#tạo lớp ẩn
+model = Sequential()
+model.add(Conv2D(32,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same', input_shape=(28,28,1)))
+model.add(Conv2D(32,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same'))
+model.add(MaxPooling2D((2,2)))
+#tạo lớp ẩn
+model.add(Conv2D(64,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same'))
+model.add(Conv2D(64,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same'))
+model.add(MaxPooling2D((2,2)))
+#tạo lớp ẩn
+model.add(Conv2D(128,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same'))
+model.add(Conv2D(128,(3,3),activation='relu',kernel_initializer='he_uniform', padding='same'))
+model.add(MaxPooling2D((2,2)))
+
+model.add(Flatten())
+model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
+model.add(Dense(10, activation='softmax'))
+from tensorflow.keras.optimizers import SGD
+opt = SGD(lr=0.01, momentum=0.9)
+model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+history = model.fit(X_train, y_train, epochs=20, batch_size=64, validation_data=(X_test, y_test), verbose=1)
+model.save('CNNfashionmnist.h5')
+from keras.models import load_model
+model5=load_model('CNNfashionmnist.h5')
+from keras.preprocessing.image import img_to_array, load_img
+import numpy as np
+score = model.evaluate(X_test, y_test, verbose=1)
+print('Test loss =', score[0])
+print('Test accurracy =', score[1])
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model Accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train','validation'],loc='upper left')
+y_pred = model.predict(X_test)
+for i in range(9):
+  plt.subplot(330+i+1)
+  plt.imshow(X[i])
+  plt.show()
+  print(np.round(y_pred[i]))
