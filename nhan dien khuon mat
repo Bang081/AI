@@ -1,0 +1,97 @@
+import os
+import numpy as np
+from skimage.io import imread, imshow
+from matplotlib import pyplot as plt 
+import random
+from skimage import color
+from tensorflow.keras.utils import to_categorical
+from keras.models import Sequential
+from skimage.transform import resize
+from keras.layers import Dense, Activation, Dropout
+from tensorflow.keras.optimizers import RMSprop
+from sklearn.model_selection import train_test_split 
+from google.colab import drive
+drive.mount('/content/drive')
+pathdata='/content/drive/MyDrive/AI'
+folder=['bang','ronaldo']
+# tai du lieu va dieu chinh size anh
+for file in folder:
+  path = os.path.join(pathdata,file)
+  for picture in os.listdir(path):
+    image = imread(os.path.join(path,picture))
+    img = resize(image,(150,150))
+    plt.imshow(img)
+    plt.show()
+    break
+    break
+#tao mang trong 'train' de gan data
+train = []
+#tao ham 
+def train_data():
+  for file in folder:
+    path = os.path.join(pathdata,file)
+    classname = folder.index(file)
+    for picture in os.listdir(path):
+      image = imread(os.path.join(path,picture))
+      img = resize(image,(150,150)) #chuyen kich thuoc anh ve kich thuoc 150,150
+      train.append([img,classname])  
+
+train_data()
+#tao 2 mang trong de gan du lieu 
+mang1=[]
+mang2=[]
+for features, label in train:
+  mang1.append(features)
+  mang2.append(label)
+mang1 = np.array(mang1)
+mang2 = np.array(mang2)  
+#chia du lieu 70% train, 30%test
+x_train, x_test, y_train, y_test = train_test_split(mang1,mang2,test_size = 0.3)
+for i in range(9):
+  plt.subplot(3,3,i+1)
+  plt.imshow(x_train[i])
+  
+x_train = color.rgb2gray(x_train)
+x_test = color.rgb2gray(x_test)
+#dinh hinh lai mang 
+x_train = x_train.reshape(32,22500) 
+x_test = x_test.reshape(15,22500)
+#chuyen du lieu ve kieu float
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+#xu li du lieu
+x_train/= 255.0 
+x_test/= 255.0
+
+y_train = to_categorical(y_train) 
+y_test = to_categorical(y_test)
+# Model ANN
+model = Sequential()
+model.add(Dense(512, activation ='relu', input_shape = (22500,)))
+model.add(Dropout(0.2))
+model.add(Dense(512, activation = 'relu'))
+model.add(Dropout(0.2))
+model.add(Dense(2, activation = 'softmax')) # => Output
+model.add(Dropout(0.2))
+
+model.summary()
+model.compile( loss='binary_crossentropy', optimizer = RMSprop(), metrics = ['accuracy']) 
+history = model.fit(x_train, y_train, batch_size = 128, epochs = 200, verbose = 1, validation_data = (x_test, y_test))
+model.save('ANN_nhandien_myface.h5')
+score = model.evaluate(x_test, y_test, verbose = 1)
+classes = ['bang','khong phai bang']
+
+from keras.preprocessing.image import load_img
+from keras.preprocessing.image import img_to_array
+from keras.preprocessing.image import array_to_img
+
+filename = 'B.jpg'
+
+img = load_img(filename, target_size =(150,150))
+plt.imshow(img)
+img = img_to_array(img)
+img = color.rgb2gray(img)
+img = img.reshape(1,22500)
+
+label = int(np.argmax(model.predict(img), axis = 1))
+classes[label]
